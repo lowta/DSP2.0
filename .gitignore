@@ -3,3 +3,4 @@ dist
 screenshots
 .env
 .env.local
+supabase/.temp
