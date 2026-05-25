@@ -1,5 +1,5 @@
 import './styles.css';
-import { signInWithPassword, signOut, getSession, onAuthStateChange } from './services/authService.js';
+import { signInWithPassword, signOut, signUpWithPassword, getSession, onAuthStateChange } from './services/authService.js';
 import { searchClients } from './services/clientApi.js';
 import { namesToApiFilter, normalizeForLocalSearch } from './utils/normalizeSearch.js';
 import { dedupeAndIndexRecords } from './utils/processRecords.js';
@@ -18,8 +18,8 @@ app.innerHTML = `
 
       <form class="auth-form" data-auth-form>
         <label class="field">
-          <span>Usuario</span>
-          <input data-auth-username type="text" autocomplete="username" placeholder="lowta" value="lowta" />
+          <span>Email</span>
+          <input data-auth-email type="email" autocomplete="email" placeholder="tu@email.com" value="ltrlambrecht@gmail.com" />
         </label>
 
         <label class="field">
@@ -29,6 +29,7 @@ app.innerHTML = `
 
         <div class="auth-actions">
           <button class="primary-button" data-auth-login type="submit">Entrar</button>
+          <button class="secondary-button" data-auth-signup type="button">Crear acceso</button>
         </div>
       </form>
 
@@ -109,8 +110,9 @@ app.innerHTML = `
 const elements = {
   authPanel: app.querySelector('[data-auth-panel]'),
   authForm: app.querySelector('[data-auth-form]'),
-  authUsername: app.querySelector('[data-auth-username]'),
+  authEmail: app.querySelector('[data-auth-email]'),
   authPassword: app.querySelector('[data-auth-password]'),
+  authSignUp: app.querySelector('[data-auth-signup]'),
   authStatus: app.querySelector('[data-auth-status]'),
   sessionPanel: app.querySelector('[data-session-panel]'),
   sessionEmail: app.querySelector('[data-session-email]'),
@@ -151,6 +153,7 @@ elements.localFilter.addEventListener('input', () => {
 });
 elements.form.addEventListener('submit', handleSearch);
 elements.authForm.addEventListener('submit', handleLogin);
+elements.authSignUp.addEventListener('click', handleSignUp);
 elements.signOutButton.addEventListener('click', handleSignOut);
 updateFilterPreview();
 initAuth();
@@ -168,10 +171,19 @@ async function handleLogin(event) {
   event.preventDefault();
   await runAuthAction(async () => {
     await signInWithPassword({
-      email: usernameToEmail(elements.authUsername.value),
+      email: elements.authEmail.value.trim(),
       password: elements.authPassword.value,
     });
   }, 'Sesion iniciada.');
+}
+
+async function handleSignUp() {
+  await runAuthAction(async () => {
+    await signUpWithPassword({
+      email: elements.authEmail.value.trim(),
+      password: elements.authPassword.value,
+    });
+  }, 'Usuario creado. Si Supabase pide confirmacion, revisa el email antes de entrar.');
 }
 
 async function handleSignOut() {
@@ -184,8 +196,8 @@ async function handleSignOut() {
 }
 
 async function runAuthAction(action, successMessage) {
-  if (!elements.authUsername.value.trim() || !elements.authPassword.value) {
-    setStatus(elements.authStatus, 'warning', 'Introduce usuario y contrasena.');
+  if (!elements.authEmail.value.trim() || !elements.authPassword.value) {
+    setStatus(elements.authStatus, 'warning', 'Introduce email y contrasena.');
     return;
   }
 
@@ -200,13 +212,6 @@ async function runAuthAction(action, successMessage) {
   } finally {
     elements.authForm.dataset.loading = 'false';
   }
-}
-
-function usernameToEmail(username) {
-  const normalized = username.trim().toLowerCase();
-  if (normalized === 'lowta') return 'ltrlambrecht@gmail.com';
-  if (normalized.includes('@')) return normalized;
-  return `${normalized}@invalid.local`;
 }
 
 function setAuthSession(session) {
