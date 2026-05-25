@@ -1,5 +1,5 @@
 import './styles.css';
-import { signInWithPassword, signOut, signUpWithPassword, getSession, onAuthStateChange } from './services/authService.js';
+import { config } from './config.js';
 import { searchClients } from './services/clientApi.js';
 import { namesToApiFilter, normalizeForLocalSearch } from './utils/normalizeSearch.js';
 import { dedupeAndIndexRecords } from './utils/processRecords.js';
@@ -10,47 +10,21 @@ const app = document.querySelector('#app');
 
 app.innerHTML = `
   <main class="shell">
-    <section class="auth-panel" data-auth-panel aria-labelledby="auth-title">
-      <div class="title-block">
-        <p class="eyebrow">DSP2.0</p>
-        <h1 id="auth-title">Acceso privado</h1>
-      </div>
-
-      <form class="auth-form" data-auth-form>
-        <label class="field">
-          <span>Email</span>
-          <input data-auth-email type="email" autocomplete="email" placeholder="tu@email.com" value="ltrlambrecht@gmail.com" />
-        </label>
-
-        <label class="field">
-          <span>Contrasena</span>
-          <input data-auth-password type="password" autocomplete="current-password" placeholder="Contrasena" />
-        </label>
-
-        <div class="auth-actions">
-          <button class="primary-button" data-auth-login type="submit">Entrar</button>
-          <button class="secondary-button" data-auth-signup type="button">Crear acceso</button>
-        </div>
-      </form>
-
-      <div data-auth-status hidden></div>
-    </section>
-
-    <section class="session-panel" data-session-panel hidden>
-      <span data-session-email></span>
-      <button class="secondary-button secondary-button--small" data-signout-button type="button">Salir</button>
-    </section>
-
-    <section class="search-panel" data-app-panel aria-labelledby="page-title" hidden>
+    <section class="search-panel" aria-labelledby="page-title">
       <div class="title-block">
         <p class="eyebrow">DSP2.0</p>
         <h1 id="page-title">Buscador de clientes</h1>
       </div>
 
-      <form class="search-form search-form--gateway" data-search-form>
+      <form class="search-form" data-search-form>
         <label class="field field--wide">
           <span>Nombres</span>
-          <textarea data-names-input rows="4" placeholder="mohammed&#10;jose, jose&#10;maria|maria"></textarea>
+          <textarea data-names-input rows="4" placeholder="mohammed&#10;jose, josé&#10;maria|maría"></textarea>
+        </label>
+
+        <label class="field">
+          <span>Token</span>
+          <input data-token-input type="password" autocomplete="off" placeholder="TOKEN" />
         </label>
 
         <button class="primary-button" data-search-button type="submit">
@@ -67,7 +41,7 @@ app.innerHTML = `
       <div data-status hidden></div>
     </section>
 
-    <section class="results-panel" data-results-panel aria-label="Resultados" hidden>
+    <section class="results-panel" aria-label="Resultados">
       <div class="results-toolbar">
         <div class="metrics">
           <div>
@@ -108,19 +82,9 @@ app.innerHTML = `
 `;
 
 const elements = {
-  authPanel: app.querySelector('[data-auth-panel]'),
-  authForm: app.querySelector('[data-auth-form]'),
-  authEmail: app.querySelector('[data-auth-email]'),
-  authPassword: app.querySelector('[data-auth-password]'),
-  authSignUp: app.querySelector('[data-auth-signup]'),
-  authStatus: app.querySelector('[data-auth-status]'),
-  sessionPanel: app.querySelector('[data-session-panel]'),
-  sessionEmail: app.querySelector('[data-session-email]'),
-  signOutButton: app.querySelector('[data-signout-button]'),
-  appPanel: app.querySelector('[data-app-panel]'),
-  resultsPanel: app.querySelector('[data-results-panel]'),
   form: app.querySelector('[data-search-form]'),
   namesInput: app.querySelector('[data-names-input]'),
+  tokenInput: app.querySelector('[data-token-input]'),
   searchButton: app.querySelector('[data-search-button]'),
   filterPreview: app.querySelector('[data-filter-preview]'),
   status: app.querySelector('[data-status]'),
@@ -129,10 +93,10 @@ const elements = {
   visibleCount: app.querySelector('[data-visible-count]'),
   localFilter: app.querySelector('[data-local-filter]'),
   emptyState: app.querySelector('[data-empty-state]'),
+  tableCard: app.querySelector('.table-card'),
 };
 
 const state = {
-  session: null,
   rows: [],
   indexedRows: [],
   filteredRows: [],
@@ -140,120 +104,48 @@ const state = {
   filterTimer: null,
 };
 
+elements.tokenInput.value = localStorage.getItem('dsp2_api_token') || config.apiToken;
 renderTableHead(app);
 const virtualTable = createVirtualTable({
   root: app,
-  rowHeight: 52,
+  rowHeight: config.virtualRowHeight,
 });
 
 elements.namesInput.addEventListener('input', updateFilterPreview);
 elements.localFilter.addEventListener('input', () => {
   clearTimeout(state.filterTimer);
-  state.filterTimer = setTimeout(applyLocalFilter, 120);
+  state.filterTimer = setTimeout(applyLocalFilter, config.localFilterDebounceMs);
 });
 elements.form.addEventListener('submit', handleSearch);
-elements.authForm.addEventListener('submit', handleLogin);
-elements.authSignUp.addEventListener('click', handleSignUp);
-elements.signOutButton.addEventListener('click', handleSignOut);
 updateFilterPreview();
-initAuth();
-
-async function initAuth() {
-  try {
-    setAuthSession(await getSession());
-    onAuthStateChange(setAuthSession);
-  } catch (error) {
-    setStatus(elements.authStatus, 'error', error.message || 'No se pudo cargar la sesion.');
-  }
-}
-
-async function handleLogin(event) {
-  event.preventDefault();
-  await runAuthAction(async () => {
-    await signInWithPassword({
-      email: elements.authEmail.value.trim(),
-      password: elements.authPassword.value,
-    });
-  }, 'Sesion iniciada.');
-}
-
-async function handleSignUp() {
-  await runAuthAction(async () => {
-    await signUpWithPassword({
-      email: elements.authEmail.value.trim(),
-      password: elements.authPassword.value,
-    });
-  }, 'Usuario creado. Si Supabase pide confirmacion, revisa el email antes de entrar.');
-}
-
-async function handleSignOut() {
-  try {
-    await signOut();
-    resetRows();
-  } catch (error) {
-    setStatus(elements.status, 'error', error.message || 'No se pudo cerrar sesion.');
-  }
-}
-
-async function runAuthAction(action, successMessage) {
-  if (!elements.authEmail.value.trim() || !elements.authPassword.value) {
-    setStatus(elements.authStatus, 'warning', 'Introduce email y contrasena.');
-    return;
-  }
-
-  elements.authForm.dataset.loading = 'true';
-  setStatus(elements.authStatus, 'info', 'Validando acceso...');
-  try {
-    await action();
-    setStatus(elements.authStatus, 'success', successMessage);
-    elements.authPassword.value = '';
-  } catch (error) {
-    setStatus(elements.authStatus, 'error', error.message || 'No se pudo validar el acceso.');
-  } finally {
-    elements.authForm.dataset.loading = 'false';
-  }
-}
-
-function setAuthSession(session) {
-  state.session = session;
-  const isSignedIn = Boolean(session?.user);
-
-  elements.authPanel.hidden = isSignedIn;
-  elements.sessionPanel.hidden = !isSignedIn;
-  elements.appPanel.hidden = !isSignedIn;
-  elements.resultsPanel.hidden = !isSignedIn;
-  elements.searchButton.disabled = !isSignedIn;
-  elements.sessionEmail.textContent = session?.user?.email || '';
-
-  if (!isSignedIn) {
-    resetRows();
-  }
-}
 
 async function handleSearch(event) {
   event.preventDefault();
 
   const filtroBusqueda = namesToApiFilter(elements.namesInput.value);
+  const token = elements.tokenInput.value.trim();
 
   if (!filtroBusqueda) {
     setStatus(elements.status, 'warning', 'Introduce al menos un nombre para buscar.');
     return;
   }
 
-  if (!state.session?.user) {
-    setStatus(elements.status, 'warning', 'Inicia sesion para buscar.');
+  if (!token) {
+    setStatus(elements.status, 'warning', 'Introduce el token de la API.');
     return;
   }
 
+  localStorage.setItem('dsp2_api_token', token);
   state.abortController?.abort();
   state.abortController = new AbortController();
   setLoading(elements.searchButton, true);
-  setStatus(elements.status, 'info', 'Consultando gateway seguro...');
+  setStatus(elements.status, 'info', 'Consultando API...');
   setEmptyState(false);
 
   try {
     const response = await searchClients({
       filtroBusqueda,
+      token,
       signal: state.abortController.signal,
     });
 
@@ -293,8 +185,8 @@ async function handleSearch(event) {
   } catch (error) {
     if (error.name === 'AbortError') return;
     resetRows();
-    setStatus(elements.status, 'error', error.message || 'Ocurrio un error consultando el gateway.');
-    setEmptyState(true, 'No se pudo completar la busqueda', 'Revisa tu sesion o la configuracion del gateway de Supabase.');
+    setStatus(elements.status, 'error', error.message || 'Ocurrio un error consultando la API.');
+    setEmptyState(true, 'No se pudo completar la busqueda', 'Revisa el token, la conexion o usa un gateway si el navegador bloquea CORS.');
   } finally {
     setLoading(elements.searchButton, false);
   }

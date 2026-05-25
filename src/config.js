@@ -1,8 +1,7 @@
 export const config = {
-  supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://dvqlapwygupdgdpjboon.supabase.co',
-  supabasePublishableKey:
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_a_uacD1TJkGwgFzw91pKlg_LJJDon34',
-  searchFunctionName: 'search-clients',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'https://node.secureapp.torreslm.es',
+  apiToken: import.meta.env.VITE_API_TOKEN || '',
+  endpoint: '/registro',
   initialRenderLimit: 500,
   virtualRowHeight: 52,
   localFilterDebounceMs: 120,

@@ -1,5 +1,4 @@
 import { config } from '../config.js';
-import { getCurrentSession } from './supabaseClient.js';
 
 export class ApiError extends Error {
   constructor(message, { status, details } = {}) {
@@ -10,14 +9,9 @@ export class ApiError extends Error {
   }
 }
 
-export async function searchClients({ filtroBusqueda, signal }) {
-  const session = await getCurrentSession();
-  if (!session?.access_token) {
-    throw new ApiError('Inicia sesion para buscar clientes.', { status: 401 });
-  }
-
-  const baseUrl = config.supabaseUrl.replace(/\/$/, '');
-  const url = `${baseUrl}/functions/v1/${config.searchFunctionName}`;
+export async function searchClients({ filtroBusqueda, token, signal }) {
+  const baseUrl = config.apiBaseUrl.replace(/\/$/, '');
+  const url = `${baseUrl}${config.endpoint}`;
 
   let response;
   try {
@@ -25,18 +19,17 @@ export async function searchClients({ filtroBusqueda, signal }) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
-        apikey: config.supabasePublishableKey,
       },
       body: JSON.stringify({
         filtroBusqueda,
+        token,
       }),
       signal,
     });
   } catch (error) {
     if (error.name === 'AbortError') throw error;
     throw new ApiError(
-      'No se pudo conectar con el gateway de busqueda.',
+      'No se pudo conectar con la API. Si ocurre desde GitHub Pages, puede ser un problema de CORS y conviene usar un gateway intermedio.',
       { details: error },
     );
   }

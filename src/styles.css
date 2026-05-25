@@ -38,27 +38,16 @@ textarea {
   gap: 20px;
 }
 
-.auth-panel,
 .search-panel,
-.session-panel,
 .results-panel {
   border: 1px solid rgba(147, 164, 196, 0.18);
   background: rgba(13, 19, 30, 0.82);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
 }
 
-.auth-panel,
-.search-panel,
-.session-panel {
+.search-panel {
   padding: 20px 24px;
   border-radius: 8px;
-}
-
-.auth-panel[hidden],
-.search-panel[hidden],
-.session-panel[hidden],
-.results-panel[hidden] {
-  display: none;
 }
 
 .title-block {
@@ -88,22 +77,6 @@ h1 {
   grid-template-columns: minmax(240px, 1fr) minmax(180px, 280px) auto;
   gap: 14px;
   align-items: end;
-}
-
-.search-form--gateway {
-  grid-template-columns: minmax(240px, 1fr) auto;
-}
-
-.auth-form {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
-  gap: 14px;
-  align-items: end;
-}
-
-.auth-actions {
-  display: flex;
-  gap: 10px;
 }
 
 .field,
@@ -151,11 +124,13 @@ h1 {
   background: #0d1522;
 }
 
-.primary-button,
-.secondary-button {
+.primary-button {
   height: 46px;
   min-width: 132px;
+  border: 0;
   border-radius: 8px;
+  background: #58d7b2;
+  color: #06120f;
   font-weight: 900;
   cursor: pointer;
   display: inline-flex;
@@ -164,46 +139,13 @@ h1 {
   gap: 10px;
 }
 
-.primary-button {
-  border: 0;
-  background: #58d7b2;
-  color: #06120f;
-}
-
-.secondary-button {
-  border: 1px solid rgba(151, 169, 202, 0.24);
-  background: #0a1019;
-  color: #ecf2ff;
-}
-
 .primary-button:hover:not(:disabled) {
   background: #7de5c8;
 }
 
-.secondary-button:hover:not(:disabled) {
-  border-color: rgba(88, 215, 178, 0.42);
-  background: #0d1522;
-}
-
-.primary-button:disabled,
-.secondary-button:disabled {
+.primary-button:disabled {
   cursor: wait;
   opacity: 0.82;
-}
-
-.secondary-button--small {
-  height: 36px;
-  min-width: 76px;
-  padding: 0 12px;
-}
-
-.session-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  color: #a9b8d0;
-  font-weight: 800;
 }
 
 .spinner {
@@ -447,19 +389,8 @@ tr:hover td {
     grid-template-columns: 1fr;
   }
 
-  .search-form--gateway,
-  .auth-form {
-    grid-template-columns: 1fr;
-  }
-
-  .primary-button,
-  .secondary-button,
-  .auth-actions {
+  .primary-button {
     width: 100%;
-  }
-
-  .auth-actions {
-    flex-direction: column;
   }
 
   .local-filter {
