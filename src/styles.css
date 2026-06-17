@@ -305,7 +305,7 @@ tbody {
 
 tr {
   display: grid;
-  grid-template-columns: minmax(240px, 1.3fr) minmax(155px, 0.8fr) minmax(320px, 1.6fr) minmax(170px, 0.9fr) minmax(170px, 0.9fr);
+  grid-template-columns: minmax(220px, 1.15fr) minmax(220px, 1fr) minmax(300px, 1.45fr) minmax(160px, 0.8fr) minmax(160px, 0.8fr);
   width: 100%;
 }
 
@@ -402,6 +402,6 @@ tr:hover td {
   }
 
   :root {
-    --table-min-width: 940px;
+    --table-min-width: 1060px;
   }
 }
