@@ -84,7 +84,7 @@ app.innerHTML = `
         </div>
         <div class="empty-state" data-empty-state>
           <h2>Listo para buscar</h2>
-          <p>Introduce uno o varios nombres. Separalos por salto de linea, coma, punto y coma o barra vertical.</p>
+          <p>Introduce un nombre</p>
         </div>
       </div>
     </section>
@@ -270,7 +270,7 @@ function updateFilterPreview() {
   elements.filterPreview.textContent = filter || '-';
 }
 
-function setEmptyState(isVisible, title = 'Listo para buscar', message = 'Introduce uno o varios nombres. Separalos por salto de linea, coma, punto y coma o barra vertical.') {
+function setEmptyState(isVisible, title = 'Listo para buscar', message = 'Introduce un nombre') {
   elements.emptyState.hidden = !isVisible;
   elements.emptyState.querySelector('h2').textContent = title;
   elements.emptyState.querySelector('p').textContent = message;
