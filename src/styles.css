@@ -254,8 +254,19 @@ h1 {
   font-size: 1.15rem;
 }
 
+.local-filters {
+  width: min(560px, 100%);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(130px, 1fr));
+  gap: 10px;
+}
+
 .local-filter {
   width: min(360px, 100%);
+}
+
+.local-filters .local-filter {
+  width: 100%;
 }
 
 .table-card {
@@ -393,8 +404,13 @@ tr:hover td {
     width: 100%;
   }
 
+  .local-filters,
   .local-filter {
     width: 100%;
+  }
+
+  .local-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .table-viewport {
@@ -403,5 +419,11 @@ tr:hover td {
 
   :root {
     --table-min-width: 1060px;
+  }
+}
+
+@media (max-width: 560px) {
+  .local-filters {
+    grid-template-columns: 1fr;
   }
 }

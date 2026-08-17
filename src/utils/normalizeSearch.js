@@ -35,6 +35,23 @@ export function buildSearchBlob(record) {
   );
 }
 
+export function buildFieldIndex(record) {
+  const holderName = normalizeForLocalSearch(record?.Holder_Name);
+
+  return {
+    name: holderName,
+    address: normalizeForLocalSearch(record?.Detail_Address),
+    city: normalizeForLocalSearch(record?.City),
+  };
+}
+
+export function splitLocalFilterTerms(value) {
+  return normalizeForLocalSearch(value)
+    .split('+')
+    .map((term) => term.trim())
+    .filter(Boolean);
+}
+
 export function buildFutureNameVariants(name) {
   return [name.trim()].filter(Boolean);
 }

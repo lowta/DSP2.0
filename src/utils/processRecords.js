@@ -1,4 +1,4 @@
-import { buildDedupeKey, buildSearchBlob } from './normalizeSearch.js';
+import { buildDedupeKey, buildFieldIndex, buildSearchBlob } from './normalizeSearch.js';
 
 const defaultChunkSize = 5000;
 
@@ -20,6 +20,7 @@ export async function dedupeAndIndexRecords(records, { chunkSize = defaultChunkS
       indexedRows.push({
         row: record,
         searchBlob: buildSearchBlob(record),
+        fields: buildFieldIndex(record),
       });
     }
 

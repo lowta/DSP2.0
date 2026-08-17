@@ -1,7 +1,7 @@
 import './styles.css';
 import { config } from './config.js';
 import { searchClients } from './services/clientApi.js';
-import { namesToApiFilter, normalizeForLocalSearch } from './utils/normalizeSearch.js';
+import { namesToApiFilter, splitLocalFilterTerms } from './utils/normalizeSearch.js';
 import { dedupeAndIndexRecords } from './utils/processRecords.js';
 import { renderTableHead, createVirtualTable } from './ui/virtualTable.js';
 import { setLoading, setStatus } from './ui/status.js';
@@ -12,14 +12,14 @@ app.innerHTML = `
   <main class="shell">
     <section class="search-panel" aria-labelledby="page-title">
       <div class="title-block">
-        <p class="eyebrow">DSP2.0</p>
+        <p class="eyebrow">DSPTools2.0</p>
         <h1 id="page-title">Buscador de clientes</h1>
       </div>
 
       <form class="search-form" data-search-form>
         <label class="field field--wide">
           <span>Nombres</span>
-          <textarea data-names-input rows="4" placeholder="mohammed&#10;jose, josé&#10;maria|maría"></textarea>
+          <textarea data-names-input rows="4"></textarea>
         </label>
 
         <label class="field">
@@ -58,10 +58,20 @@ app.innerHTML = `
           </div>
         </div>
 
-        <label class="local-filter">
-          <span>Filtrar cargados</span>
-          <input data-local-filter type="search" placeholder="Nombre, telefono, ciudad..." disabled />
-        </label>
+        <div class="local-filters" aria-label="Filtros locales sobre resultados cargados">
+          <label class="local-filter">
+            <span>Nombre</span>
+            <input data-local-filter="name" type="search" disabled />
+          </label>
+          <label class="local-filter">
+            <span>Direccion</span>
+            <input data-local-filter="address" type="search" disabled />
+          </label>
+          <label class="local-filter">
+            <span>Ciudad</span>
+            <input data-local-filter="city" type="search" disabled />
+          </label>
+        </div>
       </div>
 
       <div class="table-card">
@@ -91,7 +101,7 @@ const elements = {
   totalCount: app.querySelector('[data-total-count]'),
   duplicateCount: app.querySelector('[data-duplicate-count]'),
   visibleCount: app.querySelector('[data-visible-count]'),
-  localFilter: app.querySelector('[data-local-filter]'),
+  localFilters: [...app.querySelectorAll('[data-local-filter]')],
   emptyState: app.querySelector('[data-empty-state]'),
   tableCard: app.querySelector('.table-card'),
 };
@@ -112,9 +122,11 @@ const virtualTable = createVirtualTable({
 });
 
 elements.namesInput.addEventListener('input', updateFilterPreview);
-elements.localFilter.addEventListener('input', () => {
-  clearTimeout(state.filterTimer);
-  state.filterTimer = setTimeout(applyLocalFilter, config.localFilterDebounceMs);
+elements.localFilters.forEach((input) => {
+  input.addEventListener('input', () => {
+    clearTimeout(state.filterTimer);
+    state.filterTimer = setTimeout(applyLocalFilter, config.localFilterDebounceMs);
+  });
 });
 elements.form.addEventListener('submit', handleSearch);
 updateFilterPreview();
@@ -172,8 +184,8 @@ async function handleSearch(event) {
     state.indexedRows = indexedRows;
     elements.duplicateCount.textContent = duplicateCount.toLocaleString('es-ES');
     elements.totalCount.textContent = unique.length.toLocaleString('es-ES');
-    elements.localFilter.disabled = unique.length === 0;
-    elements.localFilter.value = '';
+    setLocalFiltersEnabled(unique.length > 0);
+    clearLocalFilters();
 
     applyRows(unique);
     setStatus(
@@ -193,17 +205,33 @@ async function handleSearch(event) {
 }
 
 function applyLocalFilter() {
-  const term = normalizeForLocalSearch(elements.localFilter.value);
-  if (!term) {
+  const filters = getLocalFilters();
+  if (filters.length === 0) {
     applyRows(state.rows);
     return;
   }
 
   const filtered = [];
   for (const item of state.indexedRows) {
-    if (item.searchBlob.includes(term)) filtered.push(item.row);
+    if (matchesLocalFilters(item, filters)) filtered.push(item.row);
   }
   applyRows(filtered);
+}
+
+function getLocalFilters() {
+  return elements.localFilters
+    .map((input) => ({
+      field: input.dataset.localFilter,
+      terms: splitLocalFilterTerms(input.value),
+    }))
+    .filter((filter) => filter.terms.length > 0);
+}
+
+function matchesLocalFilters(item, filters) {
+  return filters.every(({ field, terms }) => {
+    const value = item.fields?.[field] || item.searchBlob;
+    return terms.every((term) => value.includes(term));
+  });
 }
 
 function applyRows(rows) {
@@ -221,8 +249,20 @@ function resetRows() {
   elements.totalCount.textContent = '0';
   elements.duplicateCount.textContent = '0';
   elements.visibleCount.textContent = '0';
-  elements.localFilter.value = '';
-  elements.localFilter.disabled = true;
+  clearLocalFilters();
+  setLocalFiltersEnabled(false);
+}
+
+function clearLocalFilters() {
+  elements.localFilters.forEach((input) => {
+    input.value = '';
+  });
+}
+
+function setLocalFiltersEnabled(isEnabled) {
+  elements.localFilters.forEach((input) => {
+    input.disabled = !isEnabled;
+  });
 }
 
 function updateFilterPreview() {
