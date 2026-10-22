@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DSPTools</string>
+    <string name="title_activity_main">DSPTools</string>
+    <string name="package_name">es.dsptools.clientsearch</string>
+    <string name="custom_url_scheme">es.dsptools.clientsearch</string>
+</resources>

@@ -1,4 +1,5 @@
-import { buildDedupeKey, buildFieldIndex, buildSearchBlob } from './normalizeSearch.js';
+import { contactKey } from '../services/combinedSearch.js';
+import { buildFieldIndex, buildSearchBlob } from './normalizeSearch.js';
 
 const defaultChunkSize = 5000;
 
@@ -10,7 +11,7 @@ export async function dedupeAndIndexRecords(records, { chunkSize = defaultChunkS
 
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index];
-    const key = buildDedupeKey(record);
+    const key = contactKey(record);
 
     if (seen.has(key)) {
       duplicateCount += 1;

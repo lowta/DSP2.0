@@ -1,4 +1,7 @@
 import './styles.css';
+import { loadContacts } from './services/contactStore.js';
+import { combinedSearch } from './services/combinedSearch.js';
+import { isAndroid, readToken, saveToken, forgetToken } from './services/tokenStorage.js';
 import { config } from './config.js';
 import { searchClients } from './services/clientApi.js';
 import { namesToApiFilter, splitLocalFilterTerms } from './utils/normalizeSearch.js';
@@ -33,6 +36,7 @@ app.innerHTML = `
         </button>
       </form>
 
+      <div class="contact-actions"><button type="button" data-sync>Actualizar contactos</button><button type="button" data-forget>Olvidar token</button><a data-editor href="./agregar/">Agregar contactos</a><span data-sync-status role="status"></span></div>
       <div class="query-preview">
         <span>Filtro API</span>
         <code data-filter-preview>-</code>
@@ -114,7 +118,22 @@ const state = {
   filterTimer: null,
 };
 
-elements.tokenInput.value = localStorage.getItem('dsp2_api_token') || config.apiToken;
+try { localStorage.removeItem('dsp2_api_token'); } catch {}
+app.querySelector('[data-editor]').hidden = isAndroid;
+let searchGeneration = 0;
+async function syncContacts() {
+ const token = elements.tokenInput.value.trim();
+ if (!token) return;
+ const label = app.querySelector('[data-sync-status]');
+ label.textContent = 'Actualizando…';
+ try { const result = await loadContacts({ url: config.contactsUrl, token }); if (token !== elements.tokenInput.value.trim()) return; await saveToken(token); label.textContent = result.warning || `${result.contacts.length} contactos actualizados`; }
+ catch (e) { label.textContent = e.message; }
+}
+app.querySelector('[data-sync]').onclick = syncContacts;
+app.querySelector('[data-forget]').onclick = async () => { searchGeneration++; state.abortController?.abort(); await forgetToken(); elements.tokenInput.value = ''; setLoading(elements.searchButton, false); resetRows(); app.querySelector('[data-sync-status]').textContent = 'Token eliminado'; };
+elements.tokenInput.addEventListener('change', () => { searchGeneration++; state.abortController?.abort(); setLoading(elements.searchButton, false); resetRows(); syncContacts(); });
+readToken().then(token => { if (!elements.tokenInput.value && token) { elements.tokenInput.value = token; syncContacts(); } }).catch(() => app.querySelector('[data-sync-status]').textContent = 'Ingresá el token para configurar este móvil.');
+document.addEventListener('visibilitychange', () => { if (!document.hidden) syncContacts(); });
 renderTableHead(app);
 const virtualTable = createVirtualTable({
   root: app,
@@ -147,7 +166,9 @@ async function handleSearch(event) {
     return;
   }
 
-  localStorage.setItem('dsp2_api_token', token);
+  const generation = ++searchGeneration;
+  const query = elements.namesInput.value;
+  try { await saveToken(token); } catch { setStatus(elements.status, 'warning', 'No se pudo guardar el token en Android.'); }
   state.abortController?.abort();
   state.abortController = new AbortController();
   setLoading(elements.searchButton, true);
@@ -155,18 +176,12 @@ async function handleSearch(event) {
   setEmptyState(false);
 
   try {
-    const response = await searchClients({
-      filtroBusqueda,
-      token,
-      signal: state.abortController.signal,
+    const response = await combinedSearch({
+      api: () => searchClients({ filtroBusqueda, token, signal: state.abortController.signal }),
+      local: () => loadContacts({ url: config.contactsUrl, token }),
+      query,
     });
-
-    if (response.status === 204) {
-      resetRows();
-      setStatus(elements.status, 'empty', 'No se encontraron resultados.');
-      setEmptyState(true, 'No se encontraron resultados', 'Prueba con otra variante del nombre o agrega acentos si aplica.');
-      return;
-    }
+    if (generation !== searchGeneration) return;
 
     setStatus(elements.status, 'info', `Procesando ${response.results.length.toLocaleString('es-ES')} registros...`);
 
@@ -180,9 +195,10 @@ async function handleSearch(event) {
       },
     });
 
+    if (generation !== searchGeneration) return;
     state.rows = unique;
     state.indexedRows = indexedRows;
-    elements.duplicateCount.textContent = duplicateCount.toLocaleString('es-ES');
+    elements.duplicateCount.textContent = (duplicateCount + response.duplicateCount).toLocaleString('es-ES');
     elements.totalCount.textContent = unique.length.toLocaleString('es-ES');
     setLocalFiltersEnabled(unique.length > 0);
     clearLocalFilters();
@@ -190,17 +206,17 @@ async function handleSearch(event) {
     applyRows(unique);
     setStatus(
       elements.status,
-      'success',
-      `Busqueda completada. ${unique.length.toLocaleString('es-ES')} resultados unicos cargados.`,
+      response.warnings.length ? 'warning' : 'success',
+      `${unique.length.toLocaleString('es-ES')} resultados. ${response.warnings.join(' ')}`,
     );
-    setEmptyState(unique.length === 0);
+    setEmptyState(unique.length === 0, 'Sin resultados', response.warnings.join(' ') || 'Probá con otro nombre.');
   } catch (error) {
-    if (error.name === 'AbortError') return;
+    if (generation !== searchGeneration || error.name === 'AbortError') return;
     resetRows();
     setStatus(elements.status, 'error', error.message || 'Ocurrio un error consultando la API.');
     setEmptyState(true, 'No se pudo completar la busqueda', 'Revisa el token, la conexion o usa un gateway si el navegador bloquea CORS.');
   } finally {
-    setLoading(elements.searchButton, false);
+    if (generation === searchGeneration) setLoading(elements.searchButton, false);
   }
 }
 

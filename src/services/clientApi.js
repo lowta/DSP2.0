@@ -24,7 +24,7 @@ export async function searchClients({ filtroBusqueda, token, signal }) {
         filtroBusqueda,
         token,
       }),
-      signal,
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
     });
   } catch (error) {
     if (error.name === 'AbortError') throw error;

@@ -4,6 +4,7 @@ const columns = [
   ['Detail_Address', 'Direccion'],
   ['City', 'Ciudad'],
   ['Province', 'Provincia'],
+  ['Source', 'Origen'],
 ];
 
 const headerHeight = 42;
