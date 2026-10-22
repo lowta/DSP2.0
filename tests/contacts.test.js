@@ -47,3 +47,16 @@ test('detail cells expose full escaped text and correct virtual row index',async
  assert.match(html,/data-detail="Description"/);
  assert.ok(!html.includes('<larga>'));
 });
+
+test('same name and phone with changed address retains local description in one row',()=>{
+ const own={...row,Detail_Address:'Dirección actualizada',Description:'actualizado hoy'};
+ const merged=mergeSources([row,row],[own]);
+ assert.equal(merged.length,1);assert.equal(merged[0].Description,'actualizado hoy');
+ assert.equal(merged[0].Detail_Address,own.Detail_Address);
+});
+test('ambiguous address matches are not silently collapsed',()=>{
+ const remote=[row,{...row,Detail_Address:'Otro domicilio'}];
+ const own={...row,Detail_Address:'Tercer domicilio',Description:'nota'};
+ assert.equal(mergeSources(remote,[own]).length,3);
+ assert.equal(mergeSources([row],[{...own,Receiver_Phone:'999'}]).length,2);
+});
