@@ -1,10 +1,10 @@
 # DSP2.0 — contactos propios cifrados
 
-Rama experimental `feature/private-contacts`. No modifica ni publica la web de `main`.
+Funcionalidad integrada en `main`, publicada en GitHub Pages.
 
 ## Funcionamiento
 - Busca nombres en la API y en la lista propia. Acentos ignorados; varios nombres separados por salto de línea, coma o punto y coma.
-- Combina resultados y muestra `API`, `Local` o `API + Local`. Deduplica por nombre normalizado, teléfono y dirección: números diferentes se conservan.
+- Combina resultados sin columna de origen. Deduplica por nombre normalizado, teléfono y dirección: números diferentes se conservan.
 - Una fuente puede fallar sin ocultar los resultados de la otra. Timeout de API: 15 segundos; lista: 12 segundos.
 - La lista remota se descarga al buscar, al volver a la app, al desbloquear y con Actualizar contactos. Si falla la red, usa la última copia cifrada validada. No es sincronización continua en segundo plano.
 
@@ -13,7 +13,7 @@ Rama experimental `feature/private-contacts`. No modifica ni publica la web de `
 2. Ingresar el mismo token de la API. No se compila ni guarda ese token en la web.
 3. Cargar la lista publicada, importar una copia cifrada o crear la primera lista si todavía no existe.
 4. Agregar nombre, teléfono, dirección, ciudad y provincia. También permite eliminar registros.
-5. Descargar `contacts.enc.json` y subirlo a `public/data/contacts.enc.json` **en esta rama**. El enlace del editor apunta a ella.
+5. Descargar `contacts.enc.json` y subirlo a `public/data/contacts.enc.json` **en main**. El enlace del editor apunta a main.
 6. Esperar la caché de GitHub Raw y actualizar contactos en la app. No es necesario reinstalar para cambios de datos.
 
 No se incluye una lista inicial ni datos personales. Hasta subir la primera lista, la API sigue funcionando y se avisa que la lista propia no está disponible. El formulario no escribe directamente en GitHub. No subir archivos con contactos sin cifrar. Antes de editar, cargar la versión más reciente; Git no resuelve automáticamente dos ediciones simultáneas del archivo cifrado.
@@ -31,7 +31,7 @@ Node 22+, JDK 21 y SDK 36. `npm ci`, `npm run android:sync`, `cd android`, `grad
 Primera instalación de esta versión requerida para activar la función. Después los contactos se actualizan desde GitHub. La app no permite agregar contactos; usar la web. No se ha probado Android Keystore en un teléfono real en esta sesión.
 
 ## Configuración
-`VITE_API_BASE_URL` configura la API. `VITE_CONTACTS_URL` configura la URL HTTPS del JSON cifrado. Por defecto apunta al archivo de esta rama en GitHub Raw (también desde el APK). Al integrar a main, actualizar la URL y el enlace de subida del editor a main. Nunca usar `VITE_API_TOKEN`: esta rama no lo lee.
+`VITE_API_BASE_URL` configura la API. `VITE_CONTACTS_URL` configura la URL HTTPS del JSON cifrado. Por defecto apunta al archivo de main en GitHub Raw (también desde el APK). Nunca usar `VITE_API_TOKEN`: esta rama no lo lee.
 
 ## Verificación
-`npm test` cubre cifrado, token incorrecto, alteración, caché sin conexión, fallos independientes de fuentes, búsqueda y deduplicación. `npm run build` compila ambas páginas. El workflow de la rama solo verifica; no despliega sobre GitHub Pages de main.
+`npm test` cubre cifrado, token incorrecto, alteración, caché sin conexión, fallos independientes de fuentes, búsqueda y deduplicación. `npm run build` compila ambas páginas. Los cambios en main se publican mediante GitHub Actions.
