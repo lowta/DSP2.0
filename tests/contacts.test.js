@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {encryptContacts,decryptContacts} from '../src/services/contactCrypto.js';
 import {loadContacts} from '../src/services/contactStore.js';
 import {combinedSearch,mergeSources,matchContacts} from '../src/services/combinedSearch.js';
-const row={Holder_Name:'José Pérez',Receiver_Phone:'0012345',Detail_Address:'Calle 1',City:'Madrid',Province:''};
+const row={Holder_Name:'José Pérez',Receiver_Phone:'0012345',Detail_Address:'Calle 1',City:'Madrid',Province:'',Description:''};
 const token='test-only-token-not-a-real-credential';
 test('encrypted round trip preserves phone, random salt/IV and rejects wrong key/tampering',async()=>{
  const a=await encryptContacts([row],token),b=await encryptContacts([row],token);
@@ -26,4 +26,24 @@ test('encrypted cache works offline and corrupt remote does not replace valid ca
  await assert.rejects(loadContacts({...options,fetcher:async()=>new Response('{"version":9}')}));
  assert.equal(storage.get(`dsp2:encrypted-contacts:${options.url}`),JSON.stringify(envelope));
  await assert.rejects(loadContacts({...options,allowCache:false,fetcher:async()=>{throw Error('offline');}}));
+});
+
+test('description survives encryption and local note wins when merging',async()=>{
+ const annotated={...row,Description:'23/10/2026 — teléfono confirmado'};
+ const decoded=await decryptContacts(await encryptContacts([annotated],token),token);
+ assert.equal(decoded.contacts[0].Description,annotated.Description);
+ assert.equal(mergeSources([row],decoded.contacts)[0].Description,annotated.Description);
+});
+test('old contacts without description remain readable',async()=>{
+ const {Description,...legacy}=row;
+ const decoded=await decryptContacts(await encryptContacts([legacy],token),token);
+ assert.equal(decoded.contacts[0].Description,'');
+});
+test('detail cells expose full escaped text and correct virtual row index',async()=>{
+ const {renderRow}=await import('../src/ui/virtualTable.js');
+ const html=renderRow({...row,Detail_Address:'Calle <larga> & más',Description:'23/10/2026'},42);
+ assert.match(html,/data-row="42"/);
+ assert.match(html,/Calle &lt;larga&gt; &amp; más/);
+ assert.match(html,/data-detail="Description"/);
+ assert.ok(!html.includes('<larga>'));
 });

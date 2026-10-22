@@ -8,7 +8,7 @@ export function mergeSources(apiRows, localRows) {
   const map=new Map();
   for(const [rows,source] of [[apiRows,'API'],[localRows,'Local']]) for(const row of rows) {
     const k=contactKey(row); const previous=map.get(k);
-    if(previous) { if(previous.Source!==source) previous.Source='API + Local'; }
+    if(previous) { if(source==='Local' && row.Description) previous.Description=row.Description; if(previous.Source!==source) previous.Source='API + Local'; }
     else map.set(k,{...row,Source:source});
   }
   return [...map.values()];

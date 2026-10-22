@@ -1,7 +1,7 @@
 const encoder = new TextEncoder();
 const iterations = 600000;
 const aad = encoder.encode('DSP2-private-contacts-v1');
-const fields = ['Holder_Name', 'Receiver_Phone', 'Detail_Address', 'City', 'Province'];
+const fields = ['Holder_Name', 'Receiver_Phone', 'Detail_Address', 'City', 'Province', 'Description'];
 function base64(bytes) { let text = ''; for (const byte of bytes) text += String.fromCharCode(byte); return btoa(text); }
 function bytes(text) { return Uint8Array.from(atob(text), c => c.charCodeAt(0)); }
 export function validateContacts(records) {
