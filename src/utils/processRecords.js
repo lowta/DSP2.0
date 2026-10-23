@@ -11,7 +11,7 @@ export async function dedupeAndIndexRecords(records, { chunkSize = defaultChunkS
 
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index];
-    const key = contactKey(record);
+    const key = `${record.Source || ''}|${contactKey(record)}`;
 
     if (seen.has(key)) {
       duplicateCount += 1;

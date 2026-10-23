@@ -7,8 +7,8 @@ export function matchContacts(rows, query) {
 export function mergeSources(apiRows, localRows) {
   const map=new Map();
   for(const [rows,source] of [[apiRows,'API'],[localRows,'Local']]) for(const row of rows) {
-    const k=contactKey(row); const previous=map.get(k);
-    if(previous) { if(source==='Local' && row.Description) previous.Description=row.Description; if(previous.Source!==source) previous.Source='API + Local'; }
+    const k=`${source}|${contactKey(row)}`; const previous=map.get(k);
+    if(previous) { if(row.Description) previous.Description=row.Description; }
     else map.set(k,{...row,Source:source});
   }
   return [...map.values()];
@@ -16,7 +16,7 @@ export function mergeSources(apiRows, localRows) {
 export async function combinedSearch({api,local,query}) {
   const [remote,own]=await Promise.allSettled([api(),local()]);
   const warnings=[];
-  if(remote.status==='rejected') warnings.push('API no disponible.');
+  if(remote.status==='rejected') warnings.push(`API no disponible: ${remote.reason?.message || 'error de conexión'}`);
   if(own.status==='rejected') warnings.push(own.reason.message || 'Contactos propios no disponibles.');
   if(remote.status==='rejected' && own.status==='rejected') throw Error(warnings.join(' '));
   const a=remote.status==='fulfilled'?remote.value.results:[];

@@ -118,7 +118,6 @@ const state = {
   filterTimer: null,
 };
 
-try { localStorage.removeItem('dsp2_api_token'); } catch {}
 app.querySelector('[data-editor]').hidden = isAndroid;
 let searchGeneration = 0;
 async function syncContacts() {
@@ -168,7 +167,7 @@ async function handleSearch(event) {
 
   const generation = ++searchGeneration;
   const query = elements.namesInput.value;
-  try { await saveToken(token); } catch { setStatus(elements.status, 'warning', 'No se pudo guardar el token en Android.'); }
+  try { await saveToken(token); } catch { setStatus(elements.status, 'warning', 'No se pudo guardar el token en este dispositivo.'); }
   state.abortController?.abort();
   state.abortController = new AbortController();
   setLoading(elements.searchButton, true);
@@ -207,7 +206,7 @@ async function handleSearch(event) {
     setStatus(
       elements.status,
       response.warnings.length ? 'warning' : 'success',
-      `${unique.length.toLocaleString('es-ES')} resultados. ${response.warnings.join(' ')}`,
+      `${unique.length.toLocaleString('es-ES')} resultados: ${unique.filter(row => row.Source === 'API').length} de API y ${unique.filter(row => row.Source === 'Local').length} locales. ${response.warnings.join(' ')}`,
     );
     setEmptyState(unique.length === 0, 'Sin resultados', response.warnings.join(' ') || 'Probá con otro nombre.');
   } catch (error) {
